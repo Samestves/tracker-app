@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
     TrendingUp, TrendingDown, Sun, Moon, X,
     Home, Utensils, Car, ShoppingBag, BookOpen, HeartPulse, Gamepad2, Wrench, Wifi, Dog, Gift, Package, PiggyBank, Briefcase, Repeat, Scale, Pencil, Wallet,
-    Menu
+    Menu, RefreshCw
 } from 'lucide-react';
 
 // --- Constantes y Datos de Configuración ---
@@ -36,59 +36,86 @@ const expenseCategories = [
 ];
 
 // --- Componentes de la UI ---
+const CircularPlusIcon = ({ className }) => (<svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+const CircularMinusIcon = ({ className }) => (<svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+const Toast = ({ message, type }) => { if (!message) return null; const toastStyles = { success: 'bg-green-500 text-white', error: 'bg-red-500 text-white' }; return (<div className={`fixed top-5 right-5 px-6 py-3 rounded-lg shadow-lg z-50 transition-transform duration-300 transform animate-fade-in-down ${toastStyles[type]}`}>{message}</div>);};
 
-// --- Íconos mejorados para botones de acción ---
-const CircularPlusIcon = ({ className }) => (
-    <svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/>
-        <path d="M12 8V16M8 12H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-);
-
-const CircularMinusIcon = ({ className }) => (
-    <svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/>
-         <path d="M8 12H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+const DollarSignIcon = ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1v22"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
     </svg>
 );
 
 
-const Toast = ({ message, type }) => {
-    if (!message) return null;
-    const toastStyles = { success: 'bg-green-500 text-white', error: 'bg-red-500 text-white' };
-    return (<div className={`fixed top-5 right-5 px-6 py-3 rounded-lg shadow-lg z-50 transition-transform duration-300 transform animate-fade-in-down ${toastStyles[type]}`}>{message}</div>);
-};
+// --- Componente de Dashboard con todas las mejoras ---
+const BalanceDashboard = ({ balance, rateBcv, rateParallel, onIncomeClick, onExpenseClick }) => {
+    const [isFlipped, setIsFlipped] = useState(false);
 
-const SummaryCard = ({ title, amount, rateBcv, rateParallel, trend = null }) => {
-    const isPositive = amount >= 0;
-    const mainColor = useMemo(() => {
-        if (title === 'Ingresos') return 'text-green-500 dark:text-green-400';
-        if (title === 'Gastos') return 'text-red-500 dark:text-red-400';
-        return isPositive ? 'text-cyan-500 dark:text-cyan-400' : 'text-orange-500 dark:text-orange-400';
-    }, [title, isPositive]);
+    const balanceColor = balance >= 0 ? 'text-gray-800 dark:text-zinc-100' : 'text-red-500 dark:text-red-400';
 
-    const TrendIcon = trend ? (trend.direction === 'up' ? TrendingUp : TrendingDown) : null;
-    const trendColor = trend ? (trend.direction === 'up' ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400') : '';
+    const CurrencyIcon = () => (
+        <button onClick={() => setIsFlipped(!isFlipped)} className="absolute top-4 right-4 h-9 w-9 flex items-center justify-center bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 rounded-full transition-transform duration-300 hover:scale-110 hover:rotate-12 active:scale-95" aria-label="Cambiar vista de moneda">
+            <div className={`transition-transform duration-500 absolute ${isFlipped ? 'rotate-y-180 opacity-0' : 'opacity-100'}`}>
+                <DollarSignIcon size={18} />
+            </div>
+            <div className={`transition-transform duration-500 absolute ${isFlipped ? 'opacity-100' : '-rotate-y-180 opacity-0'}`}>
+                 <RefreshCw size={18} />
+            </div>
+        </button>
+    );
+    
+    const ActionButtons = () => (
+        <div className="flex border-t border-gray-200 dark:border-zinc-800">
+            <button onClick={onIncomeClick} className="group flex-1 flex items-center justify-center gap-2 text-green-600 dark:text-green-400 hover:bg-green-500 hover:text-white dark:hover:text-white active:bg-green-600 rounded-none py-4 transition-all duration-200">
+                <CircularPlusIcon className="w-6 h-6" /> <span className="font-bold">Ingreso</span>
+            </button>
+             <div className="w-px bg-gray-200 dark:bg-zinc-800"></div>
+            <button onClick={onExpenseClick} className="group flex-1 flex items-center justify-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white dark:hover:text-white active:bg-red-600 rounded-none py-4 transition-all duration-200">
+                <CircularMinusIcon className="w-6 h-6" /> <span className="font-bold">Gasto</span>
+            </button>
+        </div>
+    );
 
     return (
-        <div className="bg-gray-50/50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 backdrop-blur-sm shadow-sm flex flex-col justify-between h-full">
-            <div>
-                <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold text-gray-500 dark:text-zinc-400">{title}</h3>
-                    {TrendIcon && (
-                        <div className={`flex items-center text-xs font-bold ${trendColor}`}>
-                            <TrendIcon size={16} className="mr-1" />
-                            <span>{trend.percentage}%</span>
+        <div className="relative [perspective:1000px] h-72 sm:h-80 mb-8">
+            <div className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                {/* --- Vista Frontal (BS) --- */}
+                <div className="absolute w-full h-full bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-md [backface-visibility:hidden] overflow-hidden">
+                    <div className="flex flex-col justify-between h-full">
+                        <div className="p-6 pb-0">
+                            <CurrencyIcon />
                         </div>
-                    )}
+                        <div className="flex-grow flex items-center justify-center p-6">
+                            <p className={`text-5xl sm:text-6xl font-bold tracking-tighter ${balanceColor}`}>
+                                {balance.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-3xl sm:text-4xl text-gray-500 dark:text-zinc-500 font-medium">Bs</span>
+                            </p>
+                        </div>
+                        <ActionButtons />
+                    </div>
                 </div>
-                <p className={`text-3xl sm:text-4xl font-bold tracking-tight break-words ${mainColor}`}>
-                    {amount.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs
-                </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-800/80 space-y-1 text-xs font-mono text-gray-500 dark:text-zinc-500">
-                <p className="flex justify-between">BCV: <span className="font-semibold text-blue-500">${(amount / rateBcv).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
-                <p className="flex justify-between">PARALELO: <span className="font-semibold text-purple-500">${(amount / rateParallel).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+
+                {/* --- Vista Trasera (USD) --- */}
+                <div className="absolute w-full h-full bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-md [backface-visibility:hidden] [transform:rotateY(180deg)] overflow-hidden">
+                     <div className="flex flex-col justify-between h-full">
+                         <div className="p-6 pb-0">
+                            <CurrencyIcon />
+                         </div>
+                        <div className="flex-grow flex items-center justify-around p-6">
+                            <div className="text-center">
+                                <span className="inline-block bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-bold px-4 py-1.5 rounded-full mb-3">BCV</span>
+                                <p className="text-4xl sm:text-5xl font-bold text-gray-800 dark:text-zinc-100">{(balance / rateBcv).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <span className="text-lg text-gray-500 dark:text-zinc-500 font-medium">USD</span>
+                            </div>
+                            <div className="text-center">
+                                <span className="inline-block bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-bold px-4 py-1.5 rounded-full mb-3">PAR</span>
+                                <p className="text-4xl sm:text-5xl font-bold text-gray-800 dark:text-zinc-100">{(balance / rateParallel).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <span className="text-lg text-gray-500 dark:text-zinc-500 font-medium">USD</span>
+                            </div>
+                        </div>
+                        <ActionButtons />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -151,8 +178,7 @@ export default function App() {
     const closeModal = () => { setModal({ isOpen: false, type: null, transactionToEdit: null }); };
     const toggleTheme = () => { setTheme(theme === 'light' ? 'dark' : 'light'); };
     const { totalIncome, totalExpenses, netBalance } = useMemo(() => { const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0); const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0); return { totalIncome: income, totalExpenses: expenses, netBalance: income - expenses }; }, [transactions]);
-    const balanceTrend = useMemo(() => { if (totalIncome === 0 && totalExpenses === 0) return null; const savingsRate = totalIncome > 0 ? (netBalance / totalIncome) * 100 : -100; return { direction: netBalance >= 0 ? 'up' : 'down', percentage: Math.abs(savingsRate).toFixed(0) }; }, [netBalance, totalIncome, totalExpenses]);
-
+    
     return (
         <div className={`min-h-screen bg-white dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 transition-colors duration-300 font-sans`}>
             <Toast key={toast.key} message={toast.message} type={toast.type} />
@@ -182,46 +208,46 @@ export default function App() {
                     )}
                 </header>
 
-                <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <SummaryCard title="Ingresos" amount={totalIncome} rateBcv={BCV_RATE} rateParallel={PARALLEL_RATE} />
-                    <SummaryCard title="Gastos" amount={totalExpenses} rateBcv={BCV_RATE} rateParallel={PARALLEL_RATE} />
-                    <SummaryCard title="Balance" amount={netBalance} rateBcv={BCV_RATE} rateParallel={PARALLEL_RATE} trend={balanceTrend} />
-                </section>
-
-                <section className="flex flex-col sm:flex-row gap-4 mb-8">
-                    <button onClick={() => openModal('income')} className="group flex-1 flex items-center justify-center gap-3 p-4 bg-gray-100 dark:bg-zinc-800/80 rounded-2xl border border-gray-200 dark:border-zinc-700 shadow-sm transition-all duration-300 transform hover:-translate-y-1 active:-translate-y-0.5 hover:border-green-400/80 dark:hover:border-green-500/80 active:border-green-400/80 dark:active:border-green-500/80 hover:bg-green-500/10 dark:hover:bg-green-500/10 active:bg-green-500/10 dark:active:bg-green-500/10">
-                        <CircularPlusIcon className="text-gray-500 dark:text-zinc-400 group-hover:text-green-500 group-active:text-green-500 transition-colors" />
-                        <span className="font-semibold text-lg text-gray-800 dark:text-zinc-200 group-hover:text-green-600 dark:group-hover:text-green-400 group-active:text-green-600 dark:group-active:text-green-400 transition-colors">Nuevo Ingreso</span>
-                    </button>
-                    <button onClick={() => openModal('expense')} className="group flex-1 flex items-center justify-center gap-3 p-4 bg-gray-100 dark:bg-zinc-800/80 rounded-2xl border border-gray-200 dark:border-zinc-700 shadow-sm transition-all duration-300 transform hover:-translate-y-1 active:-translate-y-0.5 hover:border-red-400/80 dark:hover:border-red-500/80 active:border-red-400/80 dark:active:border-red-500/80 hover:bg-red-500/10 dark:hover:bg-red-500/10 active:bg-red-500/10 dark:active:bg-red-500/10">
-                        <CircularMinusIcon className="text-gray-500 dark:text-zinc-400 group-hover:text-red-500 group-active:text-red-500 transition-colors" />
-                        <span className="font-semibold text-lg text-gray-800 dark:text-zinc-200 group-hover:text-red-600 dark:group-hover:text-red-400 group-active:text-red-600 dark:group-active:text-red-400 transition-colors">Nuevo Gasto</span>
-                    </button>
-                </section>
+                <BalanceDashboard 
+                    balance={netBalance}
+                    rateBcv={BCV_RATE}
+                    rateParallel={PARALLEL_RATE}
+                    onIncomeClick={() => openModal('income')}
+                    onExpenseClick={() => openModal('expense')}
+                />
                 
                 <section>
-                    <h2 className="text-2xl font-bold mb-4 text-black dark:text-zinc-100">Historial</h2>
+                    <h2 className="text-2xl font-bold mb-4 text-black dark:text-zinc-100">Historial de Transacciones</h2>
                     <div className="space-y-4">
                         {transactions.length === 0 ? (<p className="text-center text-gray-500 dark:text-zinc-400 py-8">No hay transacciones todavía.</p>) : (
                             [...transactions].reverse().map(t => {
                                 const Icon = t.icon;
                                 const isIncome = t.type === 'income';
                                 return (
-                                    <div key={t.id} className="flex items-center p-4 bg-white dark:bg-zinc-800/50 rounded-2xl animate-fade-in-up border border-gray-200 dark:border-zinc-800">
-                                        <div className={`flex-shrink-0 p-3 rounded-full mr-4 ${isIncome ? 'bg-green-100 dark:bg-green-500/20' : 'bg-red-100 dark:bg-red-500/20'}`}><Icon size={24} className={isIncome ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'} /></div>
+                                    <div key={t.id} className="flex flex-wrap sm:flex-nowrap items-center gap-4 p-4 bg-white dark:bg-zinc-800/50 rounded-2xl border border-gray-200 dark:border-zinc-800">
+                                        <div className="flex-shrink-0">
+                                            <div className={`flex items-center justify-center h-12 w-12 rounded-full ${isIncome ? 'bg-green-100 dark:bg-green-500/20' : 'bg-red-100 dark:bg-red-500/20'}`}>
+                                                <Icon size={24} className={isIncome ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'} />
+                                            </div>
+                                        </div>
                                         <div className="flex-grow min-w-0">
                                             <p className="font-bold text-black dark:text-zinc-100 truncate">{t.category}</p>
                                             <p className="text-xs text-gray-500 dark:text-zinc-400">{new Date(t.createdAt).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' })}</p>
                                         </div>
-                                        <div className="flex flex-col items-end ml-2 text-right">
-                                            <p className={`font-bold text-lg break-all ${isIncome ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>{isIncome ? '+' : '-'} {t.amount.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs</p>
-                                            <p className="text-xs font-mono text-gray-500 dark:text-zinc-500 mt-1">
-                                                <span className="font-bold text-blue-500 dark:text-blue-400">${(t.amount / BCV_RATE).toFixed(2)}</span>
-                                                <span className="text-gray-400 dark:text-zinc-600 mx-1">/</span>
-                                                <span className="font-bold text-purple-500 dark:text-purple-400">${(t.amount / PARALLEL_RATE).toFixed(2)}</span>
-                                            </p>
+                                        <div className="flex-grow flex flex-col items-end min-w-0 ml-auto">
+                                            <p className={`font-bold text-xl break-all mb-2 ${isIncome ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>{isIncome ? '+' : '-'} {t.amount.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs</p>
+                                            <div className="flex items-center justify-end flex-wrap gap-2">
+                                                 <div className="flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-zinc-700/50 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 px-2.5 py-1">
+                                                    <span className="text-xs font-bold text-blue-500 dark:text-blue-400">BCV</span>
+                                                    <span className="text-xs font-mono font-semibold text-gray-600 dark:text-zinc-300">${(t.amount / BCV_RATE).toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-zinc-700/50 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 px-2.5 py-1">
+                                                    <span className="text-xs font-semibold text-purple-500 dark:text-purple-400">PAR</span>
+                                                    <span className="text-xs font-mono font-semibold text-gray-600 dark:text-zinc-300">${(t.amount / PARALLEL_RATE).toFixed(2)}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                         <div className="flex items-center ml-4">
+                                         <div className="flex items-center ml-2 flex-shrink-0">
                                                 <button onClick={() => openModal(t.type, t)} className="text-gray-400 dark:text-zinc-500 hover:text-blue-500 active:text-blue-500 dark:hover:text-blue-400 dark:active:text-blue-400 transition-colors p-2 rounded-full"><Pencil size={16} /></button>
                                                 <button onClick={() => handleDeleteTransaction(t.id)} className="text-gray-400 dark:text-zinc-500 hover:text-red-500 active:text-red-500 dark:hover:text-red-400 dark:active:text-red-400 transition-colors p-2 rounded-full"><X size={18} /></button>
                                             </div>
